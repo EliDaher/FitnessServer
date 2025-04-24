@@ -1,86 +1,83 @@
 import { Request, Response } from "express";
 import admin from "../firebase/admin";
 
+// ✅ تسجيل مستخدم جديد
 export const signup = async (req: Request, res: Response) => {
   const { fullName, username, email, password, confirmPassword } = req.body;
+
+  if (!fullName || !username || !email || !password || !confirmPassword) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
 
   if (password !== confirmPassword) {
     return res.status(400).json({ error: "Passwords do not match" });
   }
 
   try {
-    const user = await admin.auth().createUser({
-      email,
-      password,
-      displayName: fullName,
-    });
-
     const db = admin.database();
-    await db.ref(`users/${user.uid}`).set({
+
+    // التحقق من وجود اسم المستخدم مسبقًا
+    const usernameSnapshot = await db.ref(`users/${username}`).once("value");
+    if (usernameSnapshot.exists()) {
+      console.log('username already taken')
+      return res.status(400).json({ error: "Username already taken" });
+    }
+
+    // إنشاء بيانات المستخدم
+    const userData = {
       fullName,
       username,
       email,
       password,
-      createdAt: Date.now(),
-    });
+      createdAt: new Date().toISOString(),
+    };
 
-    return res.status(201).json({ uid: user.uid });
-  } catch (error: any) {
-    console.log(error)
-    return res.status(400).json({ error: error.message });
-  }
-};
+    // حفظ المستخدم في قاعدة البيانات
+    await db.ref(`users/${username}`).set(userData);
 
-// دالة التحقق من التوكن
-export const verifyToken = async (req: Request, res: Response) => {
-  const { token } = req.body;
-  try {
-    const decoded = await admin.auth().verifyIdToken(token);
-    return res.status(200).json({ uid: decoded.uid, email: decoded.email });
+    return res.status(201).json({ message: "User registered successfully" });
   } catch (error: any) {
-    return res.status(401).json({ error: "Invalid token" });
+    console.error("Signup error:", error);
+    return res.status(500).json({ error: "Server error during signup" });
   }
 };
 
 // ✅ تسجيل الدخول
 export const login = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { username, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required" });
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password are required" });
   }
 
   try {
-    // جلب المستخدم من Firebase
-    const userRecord = await admin.auth().getUserByEmail(email);
-    const uid = userRecord.uid;
-
-    // جلب بيانات المستخدم من Realtime Database
-    const snapshot = await admin.database().ref(`users/${uid}`).once("value");
+    console.log(username + "5555" + password)
+    // جلب بيانات المستخدم
+    const snapshot = await admin.database().ref(`users/${username}`).once("value");
     const userData = snapshot.val();
 
+    console.log('hui55555555')
     if (!userData) {
-      return res.status(404).json({ error: "User data not found." });
+      console.log('userDate')
+      return res.status(404).json({ error: "User not found." });
     }
-
-    // التحقق من كلمة السر (مقارنة بسيطة)
+    
+    // مقارنة كلمة السر (بسيطة)
     if (userData.password !== password) {
+      console.log('userPassword')
       return res.status(401).json({ error: "Incorrect password." });
     }
 
-    // إنشاء JWT (token) باستخدام Firebase
-    const customToken = await admin.auth().createCustomToken(uid);
+    console.log('hui')
 
     return res.status(200).json({
       message: "Login successful",
-      uid,
       fullName: userData.fullName,
       username: userData.username,
-      token: customToken,
     });
 
   } catch (error: any) {
-    console.error("Login error:", error.code, error.message, error.stack);
-    return res.status(500).json({ error: error.message });
+    console.error("Login error:", error);
+    return res.status(500).json({ error: "Server error during login" });
   }
 };

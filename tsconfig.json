@@ -1,11 +1,17 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "module": "commonjs",
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "strict": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true
-  }
+    "target": "ES6",                    // استهداف ECMAScript 6 (أو يمكن استخدام ES2020)
+    "module": "commonjs",               // استخدام CommonJS كنظام وحدات
+    "rootDir": "./src",                 // المجلد الذي يحتوي على ملفات TypeScript
+    "outDir": "./dist",                 // المجلد الذي سيتم وضع ملفات JavaScript فيه
+    "strict": true,                     // تمكين الوضع الصارم للتحقق من الأنواع
+    "esModuleInterop": true,            // لتفعيل التوافق مع استيراد الوحدات CommonJS
+    "resolveJsonModule": true           // لدعم استيراد ملفات JSON
+  },
+  "include": [
+    "src/**/*.ts"                       // تضمين جميع ملفات TypeScript من المجلد src
+  ],
+  "exclude": [
+    "node_modules"                      // استبعاد مجلد node_modules من الترجمة
+  ]
 }
